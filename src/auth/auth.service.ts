@@ -14,7 +14,15 @@ export class AuthService {
     private userRepository: Repository<User>,
   ) {}
 
-  // LOGIN USER
+  /**
+   * Logs in a user by validating credentials and issuing JWT tokens.
+   *
+   * @param dto - Data Transfer Object containing the user's name, email, and password
+   * @param res - Express response object used to send success or error responses
+   * @returns Sends status 200 with access and refresh tokens in cookies if login is successful,
+   *          500 if required fields are missing or credentials are invalid,
+   *          or throws an error if the user is not found
+   */
   async loginUser(dto: CreateUserDto, res: Response) {
     const { name, email, password } = dto;
 
@@ -54,7 +62,15 @@ export class AuthService {
     res.status(200).send({ message: 'Login Successful' });
   }
 
-  // REGISTER USER
+  /**
+   * Registers a new user in the system.
+   *
+   * @param dto - Data Transfer Object containing the user's name, email, and password
+   * @param res - Express response object used to send success or error responses
+   * @returns Sends status 200 with the created user on success,
+   *          500 with an error message if required fields are missing or
+   *          if the email already exists
+   */
   async registerUser(dto: CreateUserDto, res: Response) {
     const { name, email, password } = dto;
 
@@ -86,7 +102,14 @@ export class AuthService {
     }
   }
 
-  // AUTH USER
+  /**
+   * Authenticates the user based on the access token in cookies.
+   *
+   * @param req - Express request object containing cookies
+   * @param res - Express response object used to send the result
+   * @returns Sends the authenticated user object with status 200 if valid,
+   *          401 if unauthorized, or 500 if an internal error occurs
+   */
   async authUser(req: Request, res: Response) {
     try {
       const accessToken = req.cookies['accessToken'];
@@ -107,7 +130,15 @@ export class AuthService {
     }
   }
 
-  // REFRESH USER
+  /**
+   * Refreshes the user's access token using the refresh token stored in cookies.
+   *
+   * @param req - Express request object containing the refreshToken cookie
+   * @param res - Express response object used to send the new access token or error
+   * @returns Sends a new access token in cookies with status 200 if successful,
+   *          401 if the refresh token is missing or invalid,
+   *          or 500 if an internal server error occurs
+   */
   async refreshUser(req: Request, res: Response) {
     try {
       const refreshToken = req.cookies['refreshToken'];
@@ -130,6 +161,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Logs out the user by clearing the access and refresh tokens from cookies.
+   *
+   * @param res - Express response object used to clear cookies and send the response
+   * @returns Sends a status 200 response with a message indicating successful logout
+   */
   async logoutUser(res: Response) {
     res.cookie('accessToken', '', { maxAge: 0 });
     res.cookie('refreshToken', '', { maxAge: 0 });
