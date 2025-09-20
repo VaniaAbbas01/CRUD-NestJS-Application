@@ -14,7 +14,8 @@ export class BooksService {
   ) {}
 
   /**
-   * Fetches all books
+   * Retrieves all books
+   *
    * @param res - Express response object
    * @returns All books or 404 if not found
    */
@@ -24,7 +25,8 @@ export class BooksService {
   }
 
   /**
-   * Fetches a book by ID
+   * Retrieves a book by ID
+   *
    * @param id - UUID of the book
    * @param res - Express response object
    * @returns A book or 404 if not found
@@ -39,6 +41,7 @@ export class BooksService {
 
   /**
    * Creates a book
+   *
    * @param dto - Partial data to create a book
    * @param res - Express response object
    * @returns 201 - success
@@ -51,6 +54,7 @@ export class BooksService {
 
   /**
    * Updates a book by ID
+   *
    * @param id - UUID of the book
    * @param dto - Partial data to update
    * @param res - Express response object
@@ -65,6 +69,7 @@ export class BooksService {
 
   /**
    * Updates a book by ID
+   *
    * @param id - UUID of the book
    * @param res - Express response object
    * @returns Deletion Message or 404 if not found
