@@ -9,6 +9,7 @@ describe('BooksController', () => {
   let controller: BooksController;
   let service: BooksService;
 
+  // Mock repository to avoid interacting with a real database
   const mockBookRepository = {
     find: jest.fn(),
     findOne: jest.fn(),
@@ -17,12 +18,14 @@ describe('BooksController', () => {
     delete: jest.fn(),
   };
 
+  // Mock Express response object
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),
   } as unknown as express.Response;
 
   beforeEach(async () => {
+    // Create a testing module with the controller and service, injecting the mocked repository
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BooksController],
       providers: [
@@ -31,14 +34,17 @@ describe('BooksController', () => {
       ],
     }).compile();
 
+    // Get instances from the testing module
     controller = module.get<BooksController>(BooksController);
     service = module.get<BooksService>(BooksService);
   });
 
+  // Test to ensure controller is defined
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
+  // Test fetching all books
   it('getBooks should return all books', async () => {
     const books = [{ id: '1', title: 'Book 1' }];
     mockBookRepository.find.mockResolvedValue(books);
@@ -49,6 +55,7 @@ describe('BooksController', () => {
     expect(res.json).toHaveBeenCalledWith(books);
   });
 
+  // Test fetching a single book by ID
   it('getBook should return a book', async () => {
     const book = { id: '1', title: 'Book 1' };
     mockBookRepository.findOne.mockResolvedValue(book);
@@ -59,6 +66,7 @@ describe('BooksController', () => {
     expect(res.json).toHaveBeenCalledWith(book);
   });
 
+  // Test creating a new book
   it('createBook should create a book', async () => {
     const dto = { title: 'New Book', author: 'Author', pages: 100 };
     const savedBook = { id: '1', ...dto };
@@ -72,6 +80,7 @@ describe('BooksController', () => {
     expect(res.json).toHaveBeenCalledWith(savedBook);
   });
 
+  // Test updating a book
   it('updateBook should update a book', async () => {
     const dto = { title: 'Updated Book' };
     const book = { id: '1', title: 'Old Book' };
@@ -86,6 +95,7 @@ describe('BooksController', () => {
     expect(res.json).toHaveBeenCalledWith(updatedBook);
   });
 
+  // Test deleting a book successfully
   it('deleteBook should delete a book', async () => {
     mockBookRepository.delete.mockResolvedValue({ affected: 1 });
 
@@ -95,6 +105,7 @@ describe('BooksController', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Book Deleted' });
   });
 
+  // Test deleting a non-existent book
   it('deleteBook should return 404 if book not found', async () => {
     mockBookRepository.delete.mockResolvedValue({ affected: 0 });
 
