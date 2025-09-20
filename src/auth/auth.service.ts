@@ -163,7 +163,6 @@ export class AuthService {
 
   /**
    * Logs out the user by clearing the access and refresh tokens from cookies.
-   *
    * @param res - Express response object used to clear cookies and send the response
    * @returns Sends a status 200 response with a message indicating successful logout
    */
