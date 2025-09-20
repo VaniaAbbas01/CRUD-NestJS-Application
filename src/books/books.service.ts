@@ -65,6 +65,11 @@ export class BooksService {
     if (!book) {
       return res.status(404).json({ message: 'Book Not Found' });
     }
+    // Update the book fields
+    const updatedBook = { ...book, ...dto };
+    await this.bookRepository.save(updatedBook);
+
+    return res.status(200).json(updatedBook);
   }
 
   /**
