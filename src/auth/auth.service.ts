@@ -4,7 +4,7 @@ import * as bcryptjs from 'bcryptjs';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Request, Response } from 'express';
 import { sign, verify } from 'jsonwebtoken';
-import { User } from 'src/user.entity';
+import { User } from '../user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
