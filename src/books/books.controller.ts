@@ -1,16 +1,17 @@
 import {
   Controller,
   Get,
-  Param,
-  Body,
+  Post,
   Put,
   Delete,
+  Param,
+  Body,
   Res,
-  HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
-import { UpdateBookDto } from './dto/update-book.dto';
 import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import express from 'express';
 
 @Controller('books')
@@ -18,44 +19,31 @@ export class BooksController {
   constructor(private readonly bookService: BooksService) {}
 
   @Get()
-  async getBooks(@Res() res: express.Response) {
-    const books = await this.bookService.findAll();
-    const result = books.map((u) => {
-      return u;
-    });
-    return res.status(200).json(result);
+  getBooks(@Res() res: express.Response) {
+    return this.bookService.findAll(res);
   }
 
   @Get(':id')
-  async getBook(@Param('id') id: string, @Res() res: express.Response) {
-    const book = await this.bookService.findOne(id);
-    if (!book) {
-      return res.status(404).json({ message: 'Book Not Found' });
-    }
-    return res.status(200).json(book);
+  getBook(@Param('id') id: string, @Res() res: express.Response) {
+    return this.bookService.findOne(id, res);
+  }
+
+  @Post()
+  createBook(@Body() dto: CreateBookDto, @Res() res: express.Response) {
+    return this.bookService.create(dto, res);
   }
 
   @Put(':id')
-  async updateBook(
+  updateBook(
     @Param('id') id: string,
     @Body() dto: UpdateBookDto,
     @Res() res: express.Response,
   ) {
-    try {
-      const updatedBook = await this.bookService.update(id, dto);
-      return res.status(200).json(updatedBook);
-    } catch (error) {
-      return res.status(500).json({ message: error });
-    }
+    return this.bookService.update(id, dto, res);
   }
 
   @Delete(':id')
-  async deleteBook(@Param('id') id: string, @Res() res: express.Response) {
-    try {
-      await this.bookService.remove(id);
-      return res.status(200).json({ message: 'Book Deleted Successfully' });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
+  deleteBook(@Param('id') id: string, @Res() res: express.Response) {
+    return this.bookService.remove(id, res);
   }
 }
