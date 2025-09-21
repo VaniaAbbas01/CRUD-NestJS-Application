@@ -1,6 +1,7 @@
 import { Controller, Body, Get, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LoginDto } from './dto/login-user.dto';
 import express from 'express';
 
 @Controller('auth')
@@ -27,7 +28,7 @@ export class AuthController {
    * @returns Calls AuthService.loginUser to perform login and set cookies
    */
   @Post('/login')
-  loginUser(@Body() dto: CreateUserDto, @Res() res: express.Response) {
+  loginUser(@Body() dto: LoginDto, @Res() res: express.Response) {
     return this.authService.loginUser(dto, res);
   }
 

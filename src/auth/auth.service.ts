@@ -6,8 +6,14 @@ import { Request, Response } from 'express';
 import { sign, verify } from 'jsonwebtoken';
 import { User } from '../user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LoginDto } from './dto/login-user.dto';
 
 @Injectable()
+/**
+ * Service responsible for handling authentication and user-related operations.
+ * Provides functionality for registration, login, authentication, token refresh,
+ * and logout using JWT access/refresh tokens stored in HTTP-only cookies.
+ */
 export class AuthService {
   constructor(
     @InjectRepository(User)
@@ -17,37 +23,39 @@ export class AuthService {
   /**
    * Logs in a user by validating credentials and issuing JWT tokens.
    *
-   * @param dto - Data Transfer Object containing the user's name, email, and password
-   * @param res - Express response object used to send success or error responses
-   * @returns Sends status 200 with access and refresh tokens in cookies if login is successful,
-   *          500 if required fields are missing or credentials are invalid,
-   *          or throws an error if the user is not found
+   * @param dto - DTO containing the user's email and password.
+   * @param res - Express response object used to send tokens in cookies.
+   * @returns Response with HTTP status:
+   *          - 200 and sets access/refresh tokens on success,
+   *          - 400 if fields are missing,
+   *          - 401 if credentials are invalid.
    */
-  async loginUser(dto: CreateUserDto, res: Response) {
-    const { name, email, password } = dto;
+  async loginUser(dto: LoginDto, res: Response) {
+    const { email, password } = dto;
 
-    // check for fields that are required
-    if (!name?.trim() || !email?.trim() || !password.trim()) {
-      return res.status(500).send({ message: 'Fill All Required Field!' });
+    if (!email?.trim() || !password.trim()) {
+      return res.status(400).send({ message: 'Fill All Required Field!' });
     }
 
     const userOB = await this.userRepository.findOne({ where: { email } });
 
-    if (!userOB) {
-      throw new Error('User not found');
-    }
-
     if (!userOB || !(await bcryptjs.compare(password, userOB.password))) {
-      res.status(500).send({ message: 'Invalid Credentials' });
+      return res.status(401).send({ message: 'Invalid Credentials' });
     }
 
-    const accessToken = sign({ id: userOB.id }, 'access_secret', {
-      expiresIn: 60 * 60,
-    });
+    const accessToken = sign(
+      { id: userOB.id },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        expiresIn: '1h',
+      },
+    );
 
-    const refreshToken = sign({ id: userOB.id }, 'refresh_secret', {
-      expiresIn: 24 * 60 * 60,
-    });
+    const refreshToken = sign(
+      { id: userOB.id },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: '7d' },
+    );
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
@@ -59,24 +67,25 @@ export class AuthService {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).send({ message: 'Login Successful' });
+    return res.status(200).send({ message: 'Login Successful' });
   }
 
   /**
-   * Registers a new user in the system.
+   * Registers a new user by saving hashed credentials to the database.
    *
-   * @param dto - Data Transfer Object containing the user's name, email, and password
-   * @param res - Express response object used to send success or error responses
-   * @returns Sends status 200 with the created user on success,
-   *          500 with an error message if required fields are missing or
-   *          if the email already exists
+   * @param dto - DTO containing the user's name, email, and password.
+   * @param res - Express response object used to return the result.
+   * @returns Response with HTTP status:
+   *          - 201 and the created user object on success,
+   *          - 400 if fields are missing,
+   *          - 409 if email already exists,
+   *          - 500 on internal errors.
    */
   async registerUser(dto: CreateUserDto, res: Response) {
     const { name, email, password } = dto;
 
-    // check for fields that are required
     if (!name?.trim() || !email?.trim() || !password.trim()) {
-      return res.status(500).send({ message: 'Fill All Required Field!' });
+      return res.status(400).send({ message: 'Fill All Required Field!' });
     }
 
     try {
@@ -85,90 +94,101 @@ export class AuthService {
         email,
         password: await bcryptjs.hash(password, 12),
       });
-      return res.status(200).send(user);
+
+      return res.status(201).send(user);
     } catch (error) {
-      console.log(error);
       if (error instanceof QueryFailedError) {
-        //@ts-ignore
+        // @ts-ignore
         if (error.code === '23505') {
-          //@ts-ignore
-          console.log(`Unique Constraint ${error.constraint} failed`);
-          return res.status(500).send({
+          return res.status(409).send({
             message: 'User with same credentials already exists',
           });
         }
       }
-      return res.status(500).send({ message: error });
+      return res.status(500).send({ message: 'Internal Server Error' });
     }
   }
 
   /**
    * Authenticates the user based on the access token in cookies.
    *
-   * @param req - Express request object containing cookies
-   * @param res - Express response object used to send the result
-   * @returns Sends the authenticated user object with status 200 if valid,
-   *          401 if unauthorized, or 500 if an internal error occurs
+   * @param req - Express request object containing cookies.
+   * @param res - Express response object used to send the result.
+   * @returns Response with HTTP status:
+   *          - 200 and the user object if valid,
+   *          - 401 if unauthorized,
+   *          - 500 if token is invalid or expired.
    */
   async authUser(req: Request, res: Response) {
     try {
       const accessToken = req.cookies['accessToken'];
-      const payLoad: any = verify(accessToken, 'access_secret');
-      if (!payLoad) {
+      if (!accessToken) {
         return res.status(401).send({ message: 'Unauthorised' });
       }
+
+      const payLoad: any = verify(accessToken, process.env.JWT_ACCESS_SECRET!);
+
       const user = await this.userRepository.findOne({
         where: { id: payLoad.id },
       });
+
       if (!user) {
         return res.status(401).send({ message: 'Unauthorised' });
       }
+
       return res.status(200).send(user);
     } catch (error) {
-      console.log(error);
-      return res.status(500).send({ message: error });
+      return res.status(500).send({ message: 'Invalid or Expired Token' });
     }
   }
 
   /**
    * Refreshes the user's access token using the refresh token stored in cookies.
    *
-   * @param req - Express request object containing the refreshToken cookie
-   * @param res - Express response object used to send the new access token or error
-   * @returns Sends a new access token in cookies with status 200 if successful,
-   *          401 if the refresh token is missing or invalid,
-   *          or 500 if an internal server error occurs
+   * @param req - Express request object containing the refreshToken cookie.
+   * @param res - Express response object used to send the new access token.
+   * @returns Response with HTTP status:
+   *          - 200 and sets a new access token on success,
+   *          - 401 if refresh token is missing or invalid.
    */
   async refreshUser(req: Request, res: Response) {
     try {
       const refreshToken = req.cookies['refreshToken'];
-      const payLoad: any = verify(refreshToken, 'refresh_secret');
-      if (!payLoad) {
+      if (!refreshToken) {
         return res.status(401).send({ message: 'Unauthorised' });
       }
-      const accessToken = sign({ id: payLoad.id }, 'access_secret', {
-        expiresIn: 60 * 60,
-      });
+
+      const payLoad: any = verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET!,
+      );
+
+      const accessToken = sign(
+        { id: payLoad.id },
+        process.env.JWT_ACCESS_SECRET!,
+        { expiresIn: '1h' },
+      );
+
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
       });
 
-      res.status(200).send({ message: 'Successfully Refreshed' });
+      return res.status(200).send({ message: 'Successfully Refreshed' });
     } catch (error) {
-      console.log(error);
-      return res.status(500).send({ message: error });
+      return res.status(401).send({ message: 'Invalid Refresh Token' });
     }
   }
 
   /**
-   * Logs out the user by clearing the access and refresh tokens from cookies.
-   * @param res - Express response object used to clear cookies and send the response
-   * @returns Sends a status 200 response with a message indicating successful logout
+   * Logs out the user by clearing authentication cookies.
+   *
+   * @param res - Express response object used to clear cookies and send response.
+   * @returns Response with HTTP status 200 and a success message.
    */
   async logoutUser(res: Response) {
-    res.cookie('accessToken', '', { maxAge: 0 });
-    res.cookie('refreshToken', '', { maxAge: 0 });
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
     return res.status(200).send({ message: 'Logout Successful' });
   }
 }

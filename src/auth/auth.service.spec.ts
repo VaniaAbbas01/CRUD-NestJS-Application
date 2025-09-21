@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from '../user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LoginDto } from './dto/login-user.dto';
 import express from 'express';
 import * as bcryptjs from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
@@ -61,7 +62,7 @@ describe('AuthService', () => {
     await service.registerUser(dto, res);
 
     // Assert response status and payload
-    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledWith(201);
     expect(res.send).toHaveBeenCalledWith({
       id: 1,
       ...dto,
@@ -72,7 +73,7 @@ describe('AuthService', () => {
   // Test for loginUser method when required fields are missing
   it('loginUser should send 500 if fields missing', async () => {
     // Create DTO with empty fields
-    const dto: CreateUserDto = { name: '', email: '', password: '' };
+    const dto: LoginDto = { email: '', password: '' };
 
     // Mock Express response
     const res = { status: jest.fn().mockReturnThis(), send: jest.fn() } as any;
@@ -81,7 +82,7 @@ describe('AuthService', () => {
     await service.loginUser(dto, res);
 
     // Expect 500 response with proper error message
-    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
       message: 'Fill All Required Field!',
     });
