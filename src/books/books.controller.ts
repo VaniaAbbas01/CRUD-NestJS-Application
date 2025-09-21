@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -48,6 +49,7 @@ export class BooksController {
    * @param res - Express response object used to send the created book
    * @returns Calls BooksService.create to save the new book
    */
+  @UseGuards(JwtAuthGuard)
   @Post()
   createBook(@Body() dto: CreateBookDto, @Res() res: express.Response) {
     return this.bookService.create(dto, res);
@@ -61,6 +63,7 @@ export class BooksController {
    * @param res - Express response object used to send the updated book or an error
    * @returns Calls BooksService.update to update the book in the database
    */
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   updateBook(
     @Param('id') id: string,
@@ -77,6 +80,7 @@ export class BooksController {
    * @param res - Express response object used to send success or error message
    * @returns Calls BooksService.remove to delete the book from the database
    */
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   deleteBook(@Param('id') id: string, @Res() res: express.Response) {
     return this.bookService.remove(id, res);

@@ -2,12 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Book } from '../book.entity';
 import express from 'express';
 
 describe('BooksController', () => {
   let controller: BooksController;
   let service: BooksService;
+
+  // Simple fake guard for testing (always allows)
+  class MockJwtAuthGuard {
+    canActivate = jest.fn(() => true);
+  }
 
   // Mock repository to avoid interacting with a real database
   const mockBookRepository = {
@@ -25,18 +31,20 @@ describe('BooksController', () => {
   } as unknown as express.Response;
 
   beforeEach(async () => {
-    // Create a testing module with the controller and service, injecting the mocked repository
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BooksController],
       providers: [
         BooksService,
         { provide: getRepositoryToken(Book), useValue: mockBookRepository },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useClass(MockJwtAuthGuard)
+      .compile();
 
-    // Get instances from the testing module
     controller = module.get<BooksController>(BooksController);
     service = module.get<BooksService>(BooksService);
+    jest.clearAllMocks();
   });
 
   // Test to ensure controller is defined
