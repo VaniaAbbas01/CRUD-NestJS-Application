@@ -8,6 +8,8 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { BooksModule } from './books/books.module';
 import { JwtModule } from '@nestjs/jwt';
+import { Book } from './book.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,12 +24,17 @@ import { JwtModule } from '@nestjs/jwt';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-        entities: [User],
+        entities: [User, Book],
         synchronize: true,
       }),
     }),
     TypeOrmModule.forFeature([User]),
     BooksModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'secretKey',
+      signOptions: { expiresIn: '1h' },
+    }),
+    AuthModule,
   ],
   controllers: [AppController, AuthController],
   providers: [AppService, AuthService],
